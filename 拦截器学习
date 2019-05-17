@@ -1,0 +1,173 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by Fernflower decompiler)
+//
+网络拦截器：逻辑点：一旦接口返回code =0 ,立马重新获取token
+第一步 获取 request 和 response ,使用 chain 得到，常规代码
+
+第二步 获取请求头中想要的 field 键值对 此处key 为"serviceToken";
+       1：利用 originalRequest.headers().names() 中得到的 set 集合 可以拿到想要的key
+
+第三步 获取返回的响应结果，也就是接口的返回值
+       1: 因为 response 下responseBody 下的string() 方法只能调用一次，而真正页面要用，所以拦截器拿结果需要使用 复制buffer 的形式获取
+       2: responseBody 可以通过 response.body() 得到
+       3: 通过response.body() 下 .source() 可以得到bufferedSource。 注解：okhttp 使用 okio 框架进行 流处理所以此处返回的是okio的 bufferedSource
+       4: 将bufferedSource 转成普通的buffer
+               1: 通过bufferedSource.request(9223372036854775807L); 检测response 是不是已经在本次读取请求时已经耗尽(通过该方法返回的boolean值确定)，
+				大概和前面：responseBody 下的string() 方法只能调用一次 对应。
+				个人觉得本步骤可以忽略。 参数值表示判断缓冲区至少含有 和参数指明大小的数据量。
+			 2：通过bufferedSource.buffer() 转为普通的buffer
+第四步 获取response 的内容的MIME类型。
+	 1：MIME类型：
+		即是Internet Media Type，互联网媒体类型，也叫做MIME类型。
+		在互联网中有成百上千中不同的数据类型，
+		HTTP在传输数据对象时会为他们打上称为MIME的数据格式标签，用于区分数据类型。最初MIME是用于电子邮件系统的，
+		
+		后来HTTP也采用了这一方案。
+		在HTTP协议消息头中，使用Content-Type来表示请求和响应中的媒体类型信息。
+		它用来告诉服务端如何处理请求的数据，以及告诉客户端（一般是浏览器）如何解析响应的数据，比如显示图片，解析并展示html等等。
+		
+	 2：通过 MediaType mediaType = responseBody.contentType(); 获取Content-Type。
+	 3：因为 Content-Type 含有两个部分 
+				1: 类型部分：形式为 主类型/子类型 如：text/html
+				2: 可选参数，如charset，boundary等 如：charset=utf-8
+		所以通过  mediaType.charset(); 得到 buffer 的 编码属性。(因是可选参数。所以可能无值，需要有默认的编码设定)
+
+第五步 通过MIME类型中的编码，克隆获取响应的结果
+	 1：通过 buffer.clone().readString(charset); 的方式 得到buffer 的克隆并通过	readString(charset)得到string
+
+第六步 （很常规无知识点）判断返回String是否有值，解析String，判断是否需要调用接口获取新的token
+
+第七步  得到返回String 如果code =0 也就是接口调用失败需要重新调用 需要在此 使用responseBody.close(); 结束本次response 防止内存泄露
+
+第八步  重新调用本接口：
+	  1：创建新的 Request.Builder:  Builder builder = originalRequest.newBuilder();
+	  2：如果有必要 在1：Builder 中添加新的 headfield 使用：
+			 builder.header("key", "value");
+	  
+	  3: 如果有必要 添加新的 request请求参数  使用：
+		 1：得到 HttpUrl：
+		    HttpUrl url =  originalRequest.url()
+		 2: 通过 newBuilder() 添加 参数：
+			url.newBuilder().addQueryParameter("key","value")
+                              .addQueryParameter("key1","value1")
+							.build() //注：builder 最终都是要调用build()方法的
+		 3: 将新的HttpUrl 装入 Request.Builder 中：
+			builder.url(url);
+	  4: 生成新的 Request ： Request newRequest = builder.build();
+	    
+第九步  调用接口获取以及传递新的响应结果 return chain.proceed(originalRequest);
+package com.hsae.ag35.remotekey.base.data.interceptors;
+
+import android.content.Context;
+import android.text.TextUtils;
+import com.google.gson.Gson;
+import com.hsae.ag35.remotekey.base.data.DataManager;
+import com.hsae.ag35.remotekey.base.data.bean.CommonBean;
+import com.hsae.ag35.remotekey.base.data.bean.RefreshTokenBean;
+import com.hsae.ag35.remotekey.base.data.bean.RefreshTokenBean.DatasBean;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import okhttp3.Interceptor;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import okhttp3.Interceptor.Chain;
+import okhttp3.Request.Builder;
+import okio.Buffer;
+import okio.BufferedSource;
+
+
+
+public class TokenInterceptor implements Interceptor {
+    public TokenInterceptor() {
+    }
+
+    public Response intercept(Chain chain) throws IOException {
+
+        Request originalRequest = chain.request();
+        Response originalResponse = chain.proceed(originalRequest);
+		
+		
+		
+        String HEADER_TOKEN = "serviceToken";
+		
+        if (originalRequest.headers().names().contains(HEADER_TOKEN)) {
+            ResponseBody responseBody = originalResponse.body();
+            BufferedSource bufferedSource = responseBody.source();
+            bufferedSource.request(9223372036854775807L);
+            Buffer buffer = bufferedSource.buffer();
+            Charset charset = Charset.forName("UTF-8");
+            MediaType mediaType = responseBody.contentType();
+            if (mediaType != null) {
+                charset = mediaType.charset();
+            }
+
+            String bodyString = buffer.clone().readString(charset);
+            if (bodyString != null) {
+                CommonBean commonBean = (CommonBean)(new Gson()).fromJson(bodyString, CommonBean.class);
+                if (TextUtils.equals(commonBean.getCode(), "0")) {
+                    RefreshTokenBean refreshTokenBean = (RefreshTokenBean)DataManager.getInstance((Context)null).refreshToken().execute().body();
+                    if (TextUtils.equals(refreshTokenBean.getCode(), "1")) {
+                        DatasBean refreshTokenBeanDatas = refreshTokenBean.getDatas();
+                        String serviceToken = refreshTokenBeanDatas.getServiceToken();
+                        DataManager.getInstance((Context)null).save((String)null, serviceToken, refreshTokenBeanDatas.getRefreshServiceToken(), (String)null, (String)null, (String)null, (String)null);
+                        responseBody.close();
+                        Builder builder = originalRequest.newBuilder();
+                        if (!TextUtils.isEmpty(serviceToken)) {
+                            builder.header(HEADER_TOKEN, serviceToken);
+                        }
+
+                        String globalToken = DataManager.getInstance((Context)null).getGlobalToken();
+                        if (!TextUtils.isEmpty(globalToken)) {
+                            builder.header("token", globalToken);
+                        }
+
+                        originalRequest = builder.build();
+                        return chain.proceed(originalRequest);
+                    }
+                }
+            }
+        }
+
+        return originalResponse;
+    }
+}
+
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+
+
+
+
+
