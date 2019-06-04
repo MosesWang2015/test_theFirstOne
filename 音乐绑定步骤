@@ -1,0 +1,185 @@
+//初始化
+//变量：
+public IMusicPlayer mMusicPlayerService;
+       MyHandler mHandler ;
+       IMusicPlayerListener mPlayerListener;
+//变量：
+    public void bindService(boolean ifNeedAddHistory) {
+        Intent intent = new Intent(getApplication(), MusicService.class);
+        intent.putExtra("currentType",type);
+        intent.putExtra("source",source);
+        Bundle bundle = new Bundle();
+        intent.putExtra("data",bundle);
+        if(ifNeedAddHistory)
+        {
+            bundle.putParcelableArrayList("currentTracks",history);
+        }
+        MusicPlayerActivity3.this.bindService(intent, mServiceConnection, Service.BIND_AUTO_CREATE);
+    }
+//mServiceConnection
+	    ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mMusicPlayerService = IMusicPlayer.Stub.asInterface(service);
+            try {
+				//得到当前播放的列表
+                currentTracks = mMusicPlayerService.cureentTrackPlayList();
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+            try {
+				//设定对音乐服务的监听，并发送message 来控制UI
+                mPlayerListener = new IMusicPlayerListener.Stub() {
+                    @Override
+                    public void action(int action, Message msg) throws RemoteException {
+                        Message msg1 =mHandler.obtainMessage();
+                        msg1 = msg;
+                        mHandler.sendMessage(msg1);
+                    }
+                };
+                mMusicPlayerService.registerListener(mPlayerListener);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+		
+        }
+    };
+//来自服务的播放变化监听
+    public static class MyHandler extends Handler {
+        private WeakReference<MusicPlayerActivity3> reference;
+
+        public MyHandler(MusicPlayerActivity2 musicPlayerActivity2) {
+            reference = new WeakReference<MusicPlayerActivity2>(musicPlayerActivity2);
+        }
+        @Override
+        public void handleMessage(Message msg) {
+            MusicPlayerActivity2 musicPlayerActivity2 = reference.get();
+            Bundle b;
+            switch (msg.what) {
+                case MusicService.MUSIC_ACTION_CONTINUE_PLAY:
+                    b = msg.getData();
+                    musicPlayerActivity2.currentCommTrackBean = b.getParcelable("currentCommTrackBean");
+                    //显示歌名
+                    //循环更新UI
+                    //歌曲的封面
+                break;
+                case MusicService.PLAY_PROGRESS:
+                    b = msg.getData();
+                    b.getString("CurrentPlayTime");
+                    b.getString("RestTime");
+                    b.getInt("Progress");
+                    break;
+                case MusicService.MUSIC_ACTION_PAUSE:
+                    //改变播放按钮
+                    break;
+                case MusicService.PLAY_FINISH:
+                    //改变播放按钮
+                    break;
+                case MusicService.ON_BUFFER_PROGRESS:
+                    b = msg.getData();
+                    b.getInt("BufferProgress",0);
+                    break;
+                case MusicService.ON_BUFFER_START:
+                    //设定seekbar不能控制
+                    break;
+                case MusicService.ON_BUFFER_STOP:
+                    //设定seekbar能控制
+                    break;
+                case MusicService.ON_MODE_CHANGE:
+                    b = msg.getData();
+                     b.getInt("curreenModer");
+                    //循环循环的样式
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+    }
+//绑定与解绑
+@Override
+    protected void onStop() {
+        LogUtil.d("王player","onStop");
+        super.onStop();
+        try {
+            mMusicPlayerService.unregisterListener(mPlayerListener);
+            mPlayerListener = null;
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        mHandler.removeCallbacksAndMessages(null);
+        mHandler = null;
+        unbindService(mServiceConnection);
+    }
+@Override
+    protected void onStart() {
+        super.onStart();
+        if(mHandler ==null)
+        {
+            mHandler = new MyHandler(MusicPlayerActivity2.this);
+        }
+    }
+@Override
+    protected void onRestart() {
+        bindService(false)
+        super.onRestart();
+    }
+//上下曲等操作：
+int curreenModer = MUSIC_PLAY_MODE_REPEAT;
+public void onClick(View view) {
+        if (view.getId() == R.id.ivBack) {
+            finish(); 
+        } else if (view.getId() == R.id.ivCollect) {
+
+        } else if (view.getId() == R.id.ivCirculWay) {
+            try {
+				//更换循环模式
+                mMusicPlayerService.action(curreenModer,"");
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        } else if (view.getId() == R.id.ivPre) {
+            try {
+				// 上一曲
+                mMusicPlayerService.action(MUSIC_ACTION_PREVIOUS,"");
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        } else if (view.getId() == R.id.ivStartOrStop) {
+            if(isplaying)
+            {
+				//暂停播放
+                try {
+                    mMusicPlayerService.action(MUSIC_ACTION_PAUSE,"");
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }else
+            {
+				//播放
+                try {
+                    mMusicPlayerService.action(MUSIC_ACTION_CONTINUE_PLAY,"");
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        } else if (view.getId() == R.id.ivNext) {
+            try {
+			// 下一曲
+                mMusicPlayerService.action(MUSIC_ACTION_NEXT,"");
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        } 
+    }
+
+
+
+
+
+
+
