@@ -53,3 +53,4 @@ JKS 密钥库使用专用格式。建议使用 "keytool -importkeystore -srckeys
 F:\>
 
 package="com.amap.location.demo"
+my_test	e79f47f3b04f36cb3c458ec6d2e12673
