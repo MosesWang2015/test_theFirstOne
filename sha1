@@ -1,0 +1,55 @@
+keytool -v -list -keystore C:\Users\wangminbinwx\.android\debug.keystore
+
+条目类型: PrivateKeyEntry
+证书链长度: 1
+证书[1]:
+所有者: C=US, O=Android, CN=Android Debug
+发布者: C=US, O=Android, CN=Android Debug
+序列号: 1
+有效期为 Mon Mar 11 16:41:33 CST 2019 至 Wed Mar 03 16:41:33 CST 2049
+证书指纹:
+         MD5:  17:7F:9E:56:04:56:29:EF:EC:25:26:74:13:22:E8:3E
+         SHA1: 90:93:55:CF:F8:2C:BC:37:46:B5:57:13:3A:2F:EA:04:29:EA:59:7A
+         SHA256: 02:AF:A9:32:D3:4B:21:F8:02:AA:B3:B3:9D:73:1D:65:DF:B2:96:9C:F9:B2:E9:CB:9C:1E:6F:13:BE:88:B4:BB
+签名算法名称: SHA1withRSA
+主体公共密钥算法: 1024 位 RSA 密钥
+版本: 1
+
+
+
+F:\>keytool -exportcert -list -v -alias android -keystore D:\SVN\android.jks
+输入密钥库口令:
+别名: android
+创建日期: 2019-4-19
+条目类型: PrivateKeyEntry
+证书链长度: 1
+证书[1]:
+所有者: CN=wang
+发布者: CN=wang
+序列号: a40595b
+有效期为 Fri Apr 19 18:35:00 CST 2019 至 Mon Apr 13 18:35:00 CST 2043
+证书指纹:
+         MD5:  D8:75:7E:49:15:64:C7:61:C8:C7:FB:91:6B:E9:3B:65
+         SHA1: AA:A8:B6:E4:40:9F:F4:1C:99:5C:3B:AE:7A:26:E2:41:47:10:FE:D5
+         SHA256: B6:AA:93:D5:81:E8:15:7B:13:FA:12:9B:39:57:D0:D4:BD:63:48:9D:BB:AE:19:A6:04:E8:C4:3D:69:7A:33:DE
+签名算法名称: SHA256withRSA
+主体公共密钥算法: 2048 位 RSA 密钥
+版本: 3
+
+扩展:
+
+#1: ObjectId: 2.5.29.14 Criticality=false
+SubjectKeyIdentifier [
+KeyIdentifier [
+0000: 1B 11 E5 ED 9A A6 C3 77   F6 44 24 7F B8 52 F0 C2  .......w.D$..R..
+0010: 2C 09 82 40                                        ,..@
+]
+]
+
+
+Warning:
+JKS 密钥库使用专用格式。建议使用 "keytool -importkeystore -srckeystore D:\SVN\android.jks -destkeystore D:\SVN\android.jks -deststoretype pkcs12" 迁移到行业标准格式 PKCS12。
+
+F:\>
+
+package="com.amap.location.demo"
