@@ -1,0 +1,83 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by Fernflower decompiler)
+//
+package com.hsae.ag35.remotekey.checkin.http;
+
+import android.content.Context;
+import android.text.TextUtils;
+import android.util.Log;
+import com.google.gson.Gson;
+import com.hsae.ag35.remotekey.base.data.DataManager;
+import com.hsae.ag35.remotekey.base.data.bean.RefreshTokenBean;
+import com.hsae.ag35.remotekey.base.data.bean.RefreshTokenBean.DatasBean;
+import okhttp3.*;
+import okhttp3.Request.Builder;
+
+import java.io.IOException;
+
+public class CheckinTokenInterceptor implements Interceptor {
+    public CheckinTokenInterceptor() {
+    }
+
+    public Response intercept(Chain chain) throws IOException {
+        Request originalRequest = chain.request();
+        Response originalResponse = chain.proceed(originalRequest);
+        String HEADER_TOKEN = "serviceToken";
+        Log.d("王",originalResponse.code()+"");
+        if (originalResponse.code() == 401) {//返回为token失效
+            RefreshTokenBean refreshTokenBean = (RefreshTokenBean)DataManager.getInstance((Context)null).refreshToken().execute().body();
+            String jsonStr;
+            jsonStr = new Gson().toJson(refreshTokenBean);
+            Log.d("王",jsonStr);
+            if (TextUtils.equals(refreshTokenBean.getCode(), "1")) {
+//                if(reLoginCallBack !=null)
+//                {
+//                    reLoginCallBack.onReLoginCallBack();
+//                }
+                DatasBean refreshTokenBeanDatas = refreshTokenBean.getDatas();
+                String serviceToken = refreshTokenBeanDatas.getServiceToken();
+                Builder builder = originalRequest.newBuilder();
+
+                if (!TextUtils.isEmpty(serviceToken)) {
+                    builder.header(HEADER_TOKEN, serviceToken);
+                    builder.url(originalRequest.url());
+//                    if(reLoginCallBack !=null)
+//                    {
+//                        reLoginCallBack.refreshServiceTokenCallBack(serviceToken);
+//                    }
+
+                    String globalToken = DataManager.getInstance((Context)null).getGlobalToken();
+                    if (!TextUtils.isEmpty(globalToken)) {
+                        builder.header("token", globalToken);
+                    }
+                }
+                originalRequest = builder.build();
+                return chain.proceed(originalRequest);
+            }
+            else
+            {
+//                if(reLoginCallBack !=null)
+//                {
+//                    reLoginCallBack.onReLoginCallBack();
+                    MediaType mediaType = originalResponse.body().contentType();
+                    String jsonresult = "{\"code\":\"0\",\"msg\":\"认证过期，请重新登录\"}";
+                    return originalResponse.newBuilder().body(ResponseBody.create(mediaType,jsonresult)).code(200)
+                            .build();
+//                }
+            }
+        }
+        return originalResponse;
+    }
+
+//    ReLoginCallBack reLoginCallBack;
+//    public interface ReLoginCallBack
+//    {
+//        void onReLoginCallBack();
+//        void refreshServiceTokenCallBack(String refreshToken);
+//    }
+//    public void setReLoginCallBack(ReLoginCallBack reLoginCallBack)
+//    {
+//        this.reLoginCallBack = reLoginCallBack;
+//    }
+}
