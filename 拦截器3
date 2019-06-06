@@ -1,0 +1,51 @@
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by Fernflower decompiler)
+//
+package com.qingmei2.sample.http.interceptor;
+
+import android.content.Context;
+import android.text.TextUtils;
+import android.util.Log;
+
+import com.google.gson.Gson;
+
+import java.io.IOException;
+
+import okhttp3.Interceptor;
+import okhttp3.MediaType;
+import okhttp3.Request;
+import okhttp3.Request.Builder;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+
+public class CheckinTokenInterceptor implements Interceptor {
+    public CheckinTokenInterceptor() {
+    }
+
+    public Response intercept(Chain chain) throws IOException {
+        Request originalRequest = chain.request();
+        Response originalResponse = chain.proceed(originalRequest);
+        String HEADER_TOKEN = "serviceToken";
+        Log.d("王",originalResponse.code()+"");
+        if (originalResponse.code() == 401) {//返回为token失效
+//            RefreshTokenBean refreshTokenBean = (RefreshTokenBean)DataManager.getInstance((Context)null).refreshToken().execute().body();
+            MediaType mediaType = originalResponse.body().contentType();
+            String jsonresult = "{\"code\":\"0\",\"msg\":\"认证过期，请重新登录\"}";
+            return originalResponse.newBuilder().body(ResponseBody.create(mediaType,jsonresult)).code(200)
+                    .build();
+        }
+        return originalResponse;
+    }
+
+//    ReLoginCallBack reLoginCallBack;
+//    public interface ReLoginCallBack
+//    {
+//        void onReLoginCallBack();
+//        void refreshServiceTokenCallBack(String refreshToken);
+//    }
+//    public void setReLoginCallBack(ReLoginCallBack reLoginCallBack)
+//    {
+//        this.reLoginCallBack = reLoginCallBack;
+//    }
+}
