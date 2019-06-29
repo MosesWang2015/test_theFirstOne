@@ -1,0 +1,92 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'com.jakewharton.butterknife'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        applicationId "com.example.ezparkingdemo22"
+
+        minSdkVersion build_version.minSdkVersion
+        targetSdkVersion build_version.targetSdkVersion
+        versionCode build_version.versionCode
+        versionName build_version.versionName
+
+
+        minSdkVersion 23
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+//        buildConfigField "String", "amap_apikey", properties.getProperty("amap_apikey")
+        manifestPlaceholders = [amap_apikey: properties.getProperty("amap_apikey")
+//                                ,ximalaya_apikey:"d6080ce95d72dca8f566e3bed94ac67d"
+//                                ,ximalayaAppSecret:"831802c7b7b4a5d4737d2f86991021e1"
+//                                ,ximalayaPackage:"com.hsae.ag35.remotekey.multimedia"
+                                ]
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'androidx.appcompat:appcompat:1.0.0'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0-beta01'
+    testImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.1.0-alpha4'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.0-alpha4'
+
+
+
+    implementation 'com.jakewharton:butterknife:10.1.0'
+    kapt 'com.jakewharton:butterknife-compiler:10.1.0'
+    implementation libs.appcompat
+    implementation libs.recyclerview
+    implementation libs.design
+    implementation libs.constraint
+
+    implementation libs.okhttp
+    implementation libs.okhttp_logging
+    implementation libs.retrofit
+    implementation libs.retrofit_gson
+    implementation libs.retrofit_rxjava
+
+    // autodispose
+    api libs.autodispose
+    api libs.autodispose_lifecycle
+    api libs.autodispose_android
+    api libs.autodispose_ad_archcomponents
+//    api libs.autodispose_ktx
+//    api libs.autodispose_android_ktx
+//    api libs.autodispose_archs_ktx  需要检查以上三行的版本号
+
+    // rx
+    implementation libs.rxjava
+    api libs.rxkotlin
+    api libs.rxandroid
+
+    implementation libs.PermissionsDispatcher
+    kapt libs.permissionsdisp_processor
+}
