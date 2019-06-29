@@ -1,0 +1,76 @@
+//init下
+
+package com.hsae.ag35.remotekey.router.init;
+
+import android.content.ContentProvider;
+import android.content.ContentValues;
+import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Process;
+import com.hsae.ag35.remotekey.router.Router;
+
+import java.util.Set;
+
+public class InitProvider extends ContentProvider {
+    public InitProvider() {
+    }
+
+    @Override
+    public int delete(Uri uri, String selection, String[] selectionArgs) {
+        return 0;
+    }
+
+    @Override
+    public String getType(Uri uri) {
+        return null;
+    }
+
+    @Override
+    public Uri insert(Uri uri, ContentValues values) {
+        return null;
+    }
+
+    @Override
+    public boolean onCreate() {
+        autoRegistRouter();
+        return true;
+    }
+
+    @Override
+    public Cursor query(Uri uri, String[] projection, String selection,
+                        String[] selectionArgs, String sortOrder) {
+        return null;
+    }
+
+    @Override
+    public int update(Uri uri, ContentValues values, String selection,
+                      String[] selectionArgs) {
+        return 0;
+    }
+
+    private void autoRegistRouter() {
+        new Thread(() -> {
+            Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+            try {
+                Bundle metaData = getContext().getPackageManager().getApplicationInfo(
+                        getContext().getPackageName(), PackageManager.GET_META_DATA).metaData;
+                Set<String> keySet = metaData.keySet();
+                for (String key : keySet) {
+                    Object object = metaData.get(key);
+                    if (!(object instanceof String)) {
+                        continue;
+                    }
+
+                    String value = metaData.getString(key);
+                    if ("router".equalsIgnoreCase(value)) {
+                        Router.register(Class.forName(key));
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+}
